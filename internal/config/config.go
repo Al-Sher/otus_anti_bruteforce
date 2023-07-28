@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"os"
 	"strconv"
 )
@@ -31,6 +32,13 @@ const (
 	defaultLogLevel      = "info"
 	defaultRedisURL      = "redis://redis:6379/0"
 	defaultHost          = "http://localhost" + defaultAddr
+)
+
+var (
+	errZeroPasswordLimit = errors.New("password limit cannot be zero")
+	errZeroIPLimit       = errors.New("ip limit cannot be zero")
+	errZeroBucketSize    = errors.New("bucket size cannot be zero")
+	errSameRedisKeys     = errors.New("whitelist and blacklist cannot have the same keys")
 )
 
 // Config структура конфигурации приложения.
@@ -88,7 +96,7 @@ func New() (Config, error) {
 	cfg.Addr = Env(addrEnv, defaultAddr)
 	cfg.Host = Env(hostEnv, defaultHost)
 
-	return cfg, nil
+	return cfg, cfg.validate()
 }
 
 func Env(key string, defaultValue string) string {
@@ -97,4 +105,24 @@ func Env(key string, defaultValue string) string {
 		return defaultValue
 	}
 	return v
+}
+
+func (c Config) validate() error {
+	if c.PasswordLimit == 0 {
+		return errZeroPasswordLimit
+	}
+
+	if c.IPLimit == 0 {
+		return errZeroIPLimit
+	}
+
+	if c.BucketSize == 0 {
+		return errZeroBucketSize
+	}
+
+	if c.WhiteListRedisKey == c.BlackListRedisKey {
+		return errSameRedisKeys
+	}
+
+	return nil
 }

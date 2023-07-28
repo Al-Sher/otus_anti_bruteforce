@@ -38,7 +38,6 @@ func (s *server) Start(ctx context.Context) error {
 	}
 
 	err := s.srv.ListenAndServe()
-	<-ctx.Done()
 
 	// Завершение работы сервера не является ошибкой запуска
 	if err == http.ErrServerClosed {

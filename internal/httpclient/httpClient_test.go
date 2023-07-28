@@ -10,11 +10,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var testContent = []byte("test")
+
 func TestHttpClient(t *testing.T) {
 	handler := func(rw http.ResponseWriter, req *http.Request) {
 		switch req.URL.Path {
 		case "/test":
-			rw.Write([]byte("test"))
+			rw.Write(testContent)
 		case "/test3":
 			vs := req.URL.Query()
 			if vs.Get("testKey") != "test" {
@@ -30,38 +32,41 @@ func TestHttpClient(t *testing.T) {
 	hc := New(httpServer.URL)
 
 	t.Run("Check get", func(t *testing.T) {
-		err := hc.Get(ctx, "test", nil)
+		b, err := hc.Get(ctx, "test", nil)
 		require.NoError(t, err)
+		require.Equal(t, testContent, b)
 
-		err = hc.Get(ctx, "test2", nil)
+		_, err = hc.Get(ctx, "test2", nil)
 		require.Error(t, err)
 	})
 
 	t.Run("Check post", func(t *testing.T) {
-		err := hc.Post(ctx, "test", nil)
+		b, err := hc.Post(ctx, "test", nil)
 		require.NoError(t, err)
+		require.Equal(t, testContent, b)
 
-		err = hc.Post(ctx, "test2", nil)
+		_, err = hc.Post(ctx, "test2", nil)
 		require.Error(t, err)
 	})
 
 	t.Run("Check delete", func(t *testing.T) {
-		err := hc.Delete(ctx, "test", nil)
+		b, err := hc.Delete(ctx, "test", nil)
 		require.NoError(t, err)
+		require.Equal(t, testContent, b)
 
-		err = hc.Delete(ctx, "test2", nil)
+		_, err = hc.Delete(ctx, "test2", nil)
 		require.Error(t, err)
 	})
 
 	t.Run("Check get params", func(t *testing.T) {
 		vs := url.Values{}
 		vs.Add("testKey", "test")
-		err := hc.Get(ctx, "test3", vs)
+		_, err := hc.Get(ctx, "test3", vs)
 		require.NoError(t, err)
 
 		vs = url.Values{}
 		vs.Add("testKey", "test2")
-		err = hc.Get(ctx, "test3", vs)
+		_, err = hc.Get(ctx, "test3", vs)
 		require.Error(t, err)
 	})
 }

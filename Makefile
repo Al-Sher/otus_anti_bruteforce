@@ -6,6 +6,7 @@ LDFLAGS := -X main.release="develop" -X main.buildDate=$(shell date -u +%Y-%m-%d
 
 build:
 	go build -v -o $(BIN) -ldflags "$(LDFLAGS)" ./cmd/anti-bruteforce
+	go build -v -o $(BIN_CLI) -ldflags "$(LDFLAGS)" ./cmd/cli
 
 run: build
 	ANTI_BRUTEFORCE_REDIS_URL=redis://localhost:6379 $(BIN)

@@ -38,31 +38,30 @@ func (b *bucket) Check(key string) bool {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	now := time.Now()
-	var t *Token
-	if token, ok := b.tokens[key]; !ok {
+	var token *Token
+	token, ok := b.tokens[key]
+	if !ok {
 		// Достигнут лимит корзины.
 		if len(b.tokens) >= b.maxTokens {
 			return false
 		}
 
-		t = &Token{
+		token = &Token{
 			expire:     now.Add(time.Duration(b.interval) * time.Second),
 			countRetry: 0,
 		}
-		b.tokens[key] = t
-	} else {
-		t = token
+		b.tokens[key] = token
 	}
 
 	// Если последняя попытка была давно, то обнуляем счетчик по ключу.
-	if now.After(t.expire) {
-		t.countRetry = 1
+	if now.After(token.expire) {
+		token.countRetry = 1
 	} else {
-		t.countRetry++
+		token.countRetry++
 	}
 	// При каждой попытке указываем новое время истечения действия счетчика.
-	t.expire = now.Add(time.Duration(b.interval) * time.Second)
-	return t.countRetry <= b.maxRetry
+	token.expire = now.Add(time.Duration(b.interval) * time.Second)
+	return token.countRetry <= b.maxRetry
 }
 
 func (b *bucket) Cleanup() {
