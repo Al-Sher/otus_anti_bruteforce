@@ -9,9 +9,9 @@ import (
 )
 
 type HTTPClient interface {
-	Get(ctx context.Context, endpoint string, params url.Values) error
-	Post(ctx context.Context, endpoint string, params url.Values) error
-	Delete(ctx context.Context, endpoint string, params url.Values) error
+	Get(ctx context.Context, endpoint string, params url.Values) ([]byte, error)
+	Post(ctx context.Context, endpoint string, params url.Values) ([]byte, error)
+	Delete(ctx context.Context, endpoint string, params url.Values) ([]byte, error)
 }
 
 type httpClient struct {
@@ -28,67 +28,40 @@ func New(host string) HTTPClient {
 	}
 }
 
-func (h *httpClient) Get(ctx context.Context, endpoint string, params url.Values) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, h.buildURL(endpoint, params), nil)
-	if err != nil {
-		return err
-	}
-	resp, err := h.cl.Do(req)
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("invalid status code %d, body read error: %w", resp.StatusCode, err)
-		}
-		return fmt.Errorf("invalid status code %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	return err
+func (h *httpClient) Get(ctx context.Context, endpoint string, params url.Values) ([]byte, error) {
+	return h.sendRequest(ctx, h.buildURL(endpoint, params), http.MethodGet)
 }
 
-func (h *httpClient) Post(ctx context.Context, endpoint string, params url.Values) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.buildURL(endpoint, params), nil)
-	if err != nil {
-		return err
-	}
-	resp, err := h.cl.Do(req)
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
-	if resp.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("invalid status code %d, body read error: %w", resp.StatusCode, err)
-		}
-		return fmt.Errorf("invalid status code %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	return err
+func (h *httpClient) Post(ctx context.Context, endpoint string, params url.Values) ([]byte, error) {
+	return h.sendRequest(ctx, h.buildURL(endpoint, params), http.MethodPost)
 }
 
-func (h *httpClient) Delete(ctx context.Context, endpoint string, params url.Values) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, h.buildURL(endpoint, params), nil)
+func (h *httpClient) Delete(ctx context.Context, endpoint string, params url.Values) ([]byte, error) {
+	return h.sendRequest(ctx, h.buildURL(endpoint, params), http.MethodDelete)
+}
+
+func (h *httpClient) sendRequest(ctx context.Context, uri string, method string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, method, uri, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	resp, err := h.cl.Do(req)
+	if err != nil {
+		return nil, err
+	}
 	defer func() {
 		_ = resp.Body.Close()
 	}()
 
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("body read error: %w", err)
+	}
 	if resp.StatusCode != http.StatusOK {
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("invalid status code %d, body read error: %w", resp.StatusCode, err)
-		}
-		return fmt.Errorf("invalid status code %d, body: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("invalid status code %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	return err
+	return body, err
 }
 
 func (h *httpClient) buildURL(endpoint string, params url.Values) string {

@@ -25,10 +25,13 @@ func main() {
 	}
 	ctx := context.Background()
 
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+	defer cancel()
+
 	logg, err := logger.New(cfg.LogLevel)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(1)
+		os.Exit(1) //nolint:gocritic
 	}
 
 	rURL, err := redis.ParseURL(cfg.RedisURL)
@@ -55,8 +58,6 @@ func main() {
 
 	a := app.New(rt, whiteList, blackList)
 	s := server.New(cfg.Addr, a, logg)
-	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
-	defer cancel()
 
 	go shutdown(ctx, s, logg)
 	go clearRateLimit(ctx, rt, cfg.BlockInterval)
