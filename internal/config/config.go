@@ -37,6 +37,7 @@ const (
 var (
 	errZeroPasswordLimit = errors.New("password limit cannot be zero")
 	errZeroIPLimit       = errors.New("ip limit cannot be zero")
+	errZeroLoginLimit    = errors.New("login limit cannot be zero")
 	errZeroBucketSize    = errors.New("bucket size cannot be zero")
 	errSameRedisKeys     = errors.New("whitelist and blacklist cannot have the same keys")
 )
@@ -110,6 +111,10 @@ func Env(key string, defaultValue string) string {
 func (c Config) validate() error {
 	if c.PasswordLimit == 0 {
 		return errZeroPasswordLimit
+	}
+
+	if c.LoginLimit == 0 {
+		return errZeroLoginLimit
 	}
 
 	if c.IPLimit == 0 {
